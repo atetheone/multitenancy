@@ -1,0 +1,45 @@
+import {{moduleNamePascal}} from '../models/{{moduleNameSnake}}.js'
+
+export interface Create{{moduleNamePascal}}Data {
+  // TODO: Define interface based on your model
+  name: string
+}
+
+export interface Update{{moduleNamePascal}}Data {
+  // TODO: Define interface based on your model
+  name?: string
+}
+
+export default class {{moduleNamePascal}}Service {
+  async findById(id: number): Promise<{{moduleNamePascal}} | null> {
+    return await {{moduleNamePascal}}.find(id)
+  }
+
+  async paginate(page: number = 1, limit: number = 10) {
+    return await {{moduleNamePascal}}.query().paginate(page, limit)
+  }
+
+  async create(data: Create{{moduleNamePascal}}Data): Promise<{{moduleNamePascal}}> {
+    return await {{moduleNamePascal}}.create(data)
+  }
+
+  async update(id: number, data: Update{{moduleNamePascal}}Data): Promise<{{moduleNamePascal}}> {
+    const {{moduleName}} = await {{moduleNamePascal}}.findOrFail(id)
+    {{moduleName}}.merge(data)
+    await {{moduleName}}.save()
+    return {{moduleName}}
+  }
+
+  async delete(id: number): Promise<void> {
+    const {{moduleName}} = await {{moduleNamePascal}}.findOrFail(id)
+    await {{moduleName}}.delete()
+  }
+
+  async findBy(field: string, value: any): Promise<{{moduleNamePascal}} | null> {
+    return await {{moduleNamePascal}}.findBy(field, value)
+  }
+
+  async findManyBy(field: string, value: any): Promise<{{moduleNamePascal}}[]> {
+    return await {{moduleNamePascal}}.query().where(field, value)
+  }
+}
