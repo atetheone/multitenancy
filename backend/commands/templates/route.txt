@@ -1,0 +1,12 @@
+import router from '@adonisjs/core/services/router'
+const {{moduleNamePascal}}Controller = () => import('../controllers/{{moduleName}}_controller.js')
+
+export default function {{moduleName}}Routes() {
+  router.group(() => {
+    router.get('/', [{{moduleNamePascal}}Controller, 'index'])
+    router.get('/:id', [{{moduleNamePascal}}Controller, 'show'])
+    router.post('/', [{{moduleNamePascal}}Controller, 'store'])
+    router.put('/:id', [{{moduleNamePascal}}Controller, 'update'])
+    router.delete('/:id', [{{moduleNamePascal}}Controller, 'destroy'])
+  }).prefix('/api/{{moduleName}}s')
+}

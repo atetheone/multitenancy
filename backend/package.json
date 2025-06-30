@@ -14,18 +14,16 @@
     "typecheck": "tsc --noEmit"
   },
   "imports": {
-    "#controllers/*": "./app/controllers/*.js",
-    "#exceptions/*": "./app/exceptions/*.js",
-    "#models/*": "./app/models/*.js",
-    "#mails/*": "./app/mails/*.js",
-    "#services/*": "./app/services/*.js",
-    "#listeners/*": "./app/listeners/*.js",
-    "#events/*": "./app/events/*.js",
-    "#middleware/*": "./app/middleware/*.js",
-    "#validators/*": "./app/validators/*.js",
+    "#modules/*": "./app/modules/*.js",
+    "#exceptions/*": "./app/shared/exceptions/*.js",
+    "#mails/*": "./app/shared/mails/*.js",
+    "#services/*": "./app/shared/services/*.js",
+    "#listeners/*": "./app/shared/listeners/*.js",
+    "#events/*": "./app/shared/events/*.js",
+    "#middleware/*": "./app/shared/middleware/*.js",
     "#providers/*": "./providers/*.js",
-    "#policies/*": "./app/policies/*.js",
-    "#abilities/*": "./app/abilities/*.js",
+    "#policies/*": "./app/shared/policies/*.js",
+    "#abilities/*": "./app/shared/abilities/*.js",
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
     "#tests/*": "./tests/*.js",
@@ -60,6 +58,7 @@
     "@adonisjs/session": "^7.5.1",
     "@maximemrf/adonisjs-jwt": "^0.6.0",
     "@vinejs/vine": "^3.0.1",
+    "adonis-autoswagger": "^3.73.0",
     "bcryptjs": "^3.0.2",
     "luxon": "^3.6.1",
     "pg": "^8.16.3",
@@ -67,8 +66,8 @@
   },
   "hotHook": {
     "boundaries": [
-      "./app/controllers/**/*.ts",
-      "./app/middleware/*.ts"
+      "./app/shared/controllers/**/*.ts",
+      "./app/shared/middleware/*.ts"
     ]
   },
   "prettier": "@adonisjs/prettier-config"

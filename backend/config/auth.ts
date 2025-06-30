@@ -1,57 +1,51 @@
 import { defineConfig } from '@adonisjs/auth'
 import { sessionGuard, sessionUserProvider } from '@adonisjs/auth/session'
-import type { InferAuthenticators, InferAuthEvents, Authenticators } from '@adonisjs/auth/types'
-import { tokensUserProvider } from '@adonisjs/auth/access_tokens'
 import { jwtGuard } from '@maximemrf/adonisjs-jwt/jwt_config'
 import { JwtGuardUser, BaseJwtContent } from '@maximemrf/adonisjs-jwt/types'
-import { User } from '#models/user'
-import env from "#start/env"
+import { tokensUserProvider } from '@adonisjs/auth/access_tokens'
+import User from '#modules/user/models/user'
 
-// Define the JWT guard configuration
 interface JwtContent extends BaseJwtContent {
   email: string
+  tenantId?: number
+  // roles?: string[]
+  // permissions?: string[]
 }
-// interface JwtContent extends BaseJwtContent {
-//   email: string
-//   tenantId: number
-//   roles: Array<{
-//     name: string
-//     permissions: Array<string>
-//   }>
-// }
 
 const authConfig = defineConfig({
+  // define the default authenticator to jwt
   default: 'jwt',
   guards: {
-    web: sessionGuard({
-      useRememberMeTokens: false,
-      provider: sessionUserProvider({
-        model: () => import('#models/user')
-      }),
-    }),
     jwt: jwtGuard({
-      provider: tokensUserProvider({
-        model: () => import('#models/user')
-      }),
       tokenExpiresIn: '1h',
       useCookies: false,
-      content: (user: JwtGuardUser<User>) : JwtContent => ({
-        userId: user.getId(),
-        email: (user.getOriginal() as User).email,
+
+      provider: sessionUserProvider({
+        model: () => import('#modules/user/models/user'),
       }),
-    })
+      // if you want to use refresh tokens, you have to set the refreshTokenUserProvider
+      refreshTokenUserProvider: tokensUserProvider({
+        tokens: 'refreshTokens',
+        model: () => import('#modules/user/models/user'),
+      }),
+      // content is a function that takes the user and returns the content of the token, it can be optional, by default it returns only the user id
+      content: <T>(user: JwtGuardUser<T>): JwtContent => {
+        const userModel = user.getOriginal() as User
+        return {
+          userId: user.getId(),
+          email: userModel.email,
+          // roles: userModel.roles?.map((role: any) => role.name) || [],
+          // permissions: userModel.permissions?.map((perm: any) => perm.name) || [],
+        }
+      },
+    }),
+    session: sessionGuard({
+      useRememberMeTokens: false,
+      provider: sessionUserProvider({
+        model: () => import('#modules/user/models/user'),
+      }),
+    }),
   },
 })
 
 export default authConfig
-
-/**
- * Inferring types from the configured auth
- * guards.
- */
-declare module '@adonisjs/auth/types' {
-  export interface Authenticators extends InferAuthenticators<typeof authConfig> {}
-}
-declare module '@adonisjs/core/types' {
-  interface EventsList extends InferAuthEvents<Authenticators> {}
-}

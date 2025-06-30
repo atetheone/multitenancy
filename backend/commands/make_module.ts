@@ -12,27 +12,27 @@ export default class MakeModule extends BaseCommand {
   @args.string({ description: 'Name of the module' })
   declare name: string
 
-  @flags.boolean({ 
+  @flags.boolean({
     description: 'Create a default model for the module',
-    alias: 'm'
+    alias: 'm',
   })
   declare model: boolean
 
-  @flags.boolean({ 
+  @flags.boolean({
     description: 'Create migration file',
-    alias: 'migration'
+    alias: 'migration',
   })
   declare migration: boolean
 
-  @flags.boolean({ 
+  @flags.boolean({
     description: 'Create test files',
-    alias: 't'
+    alias: 't',
   })
   declare test: boolean
 
-  @flags.string({ 
+  @flags.string({
     description: 'Domain context (auth, user, catalog, etc.)',
-    alias: 'd'
+    alias: 'd',
   })
   declare domain: string
 
@@ -49,10 +49,10 @@ export default class MakeModule extends BaseCommand {
     this.logger.info(`Creating module: ${moduleNamePascal}`)
 
     // Créer la structure du dossier
-    const modulePath = join(this.app.appRoot.toString(), 'app', 'modules', moduleName)
-    
+    const modulePath = join('app', 'modules', moduleName)
+
     await this.createModuleStructure(modulePath)
-    
+
     // Générer les fichiers de base
     await this.generateFiles(modulePath, {
       moduleName,
@@ -96,6 +96,7 @@ export default class MakeModule extends BaseCommand {
       'events',
       'contracts',
       'exceptions',
+      'dtos',
     ]
 
     for (const folder of folders) {
@@ -112,6 +113,7 @@ export default class MakeModule extends BaseCommand {
       { template: 'service', path: `services/${context.moduleName}_service.ts` },
       { template: 'validator', path: `validators/${context.moduleName}_validator.ts` },
       { template: 'route', path: `routes/${context.moduleName}_routes.ts` },
+      { template: 'dto', path: `dtos/${context.moduleName}.ts` },
     ]
 
     for (const file of files) {
@@ -119,13 +121,17 @@ export default class MakeModule extends BaseCommand {
     }
   }
 
-  private async generateModel(modulePath: string, moduleNamePascal: string, moduleNameSnake: string) {
+  private async generateModel(
+    modulePath: string,
+    moduleNamePascal: string,
+    moduleNameSnake: string
+  ) {
     const context = {
       moduleNamePascal,
       moduleNameSnake,
       tableName: string.pluralize(moduleNameSnake),
     }
-    
+
     await this.generateFromTemplate(
       'model',
       join(modulePath, 'models', `${moduleNameSnake}.ts`),
@@ -136,9 +142,8 @@ export default class MakeModule extends BaseCommand {
   private async generateMigration(moduleNameSnake: string, moduleNamePascal: string) {
     const timestamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 14)
     const tableName = string.pluralize(moduleNameSnake)
-    
+
     const migrationPath = join(
-      this.app.appRoot.toString(),
       'database',
       'migrations',
       `${timestamp}_create_${tableName}_table.ts`
@@ -154,23 +159,19 @@ export default class MakeModule extends BaseCommand {
   }
 
   private async generateTests(modulePath: string, moduleNamePascal: string) {
-    const testPath = join(
-      this.app.appRoot.toString(),
-      'tests',
-      'functional',
-      `${string.snakeCase(moduleNamePascal)}.spec.ts`
-    )
+    console.log(modulePath)
+    const testPath = join('tests', 'functional', `${string.snakeCase(moduleNamePascal)}.spec.ts`)
 
     const context = { moduleNamePascal }
     await this.generateFromTemplate('test', testPath, context)
   }
 
   private async generateFromTemplate(templateName: string, outputPath: string, context: any) {
-    const templatePath = join(__dirname, 'templates', `${templateName}.txt`)
-    
+    const templatePath = join(import.meta.dirname, 'templates', `${templateName}.txt`)
+
     try {
       let template = await readFile(templatePath, 'utf-8')
-      
+
       // Remplacer les placeholders
       template = template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
         return context[key.trim()] || match
@@ -183,7 +184,7 @@ export default class MakeModule extends BaseCommand {
       }
 
       await writeFile(outputPath, template)
-      this.logger.action('create').succeeded(outputPath)
+      this.logger.action('create').succeeded()
     } catch (error) {
       this.logger.error(`Failed to generate ${templateName}: ${error.message}`)
     }

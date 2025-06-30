@@ -1,0 +1,35 @@
+// DTOs for {{moduleNamePascal}} module
+
+export interface Create{{moduleNamePascal}}Dto {
+  // TODO: Add properties for creating {{moduleName}}
+  name: string
+}
+
+export interface Update{{moduleNamePascal}}Dto extends Partial<Create{{moduleNamePascal}}Dto> {
+  // TODO: Add additional update-specific properties if needed
+}
+
+export interface {{moduleNamePascal}}ResponseDto {
+  id: number
+  name: string
+  createdAt: string
+  updatedAt: string
+  // TODO: Add response properties
+}
+
+export interface {{moduleNamePascal}}ListResponseDto {
+  data: {{moduleNamePascal}}ResponseDto[]
+  meta: {
+    total: number
+    perPage: number
+    currentPage: number
+    lastPage: number
+  }
+}
+
+export interface {{moduleNamePascal}}QueryDto {
+  page?: number
+  limit?: number
+  search?: string
+  // TODO: Add query parameters for filtering/sorting
+}

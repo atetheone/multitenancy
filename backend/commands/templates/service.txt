@@ -1,14 +1,11 @@
 import {{moduleNamePascal}} from '../models/{{moduleNameSnake}}.js'
-
-export interface Create{{moduleNamePascal}}Data {
-  // TODO: Define interface based on your model
-  name: string
-}
-
-export interface Update{{moduleNamePascal}}Data {
-  // TODO: Define interface based on your model
-  name?: string
-}
+import { 
+  Create{{moduleNamePascal}}Dto, 
+  Update{{moduleNamePascal}}Dto,
+  {{moduleNamePascal}}ResponseDto,
+  {{moduleNamePascal}}ListResponseDto,
+  {{moduleNamePascal}}QueryDto
+} from '../dtos/{{moduleName}}.js'
 
 export default class {{moduleNamePascal}}Service {
   async findById(id: number): Promise<{{moduleNamePascal}} | null> {
@@ -19,11 +16,11 @@ export default class {{moduleNamePascal}}Service {
     return await {{moduleNamePascal}}.query().paginate(page, limit)
   }
 
-  async create(data: Create{{moduleNamePascal}}Data): Promise<{{moduleNamePascal}}> {
+  async create(data: Create{{moduleNamePascal}}Dto): Promise<{{moduleNamePascal}}> {
     return await {{moduleNamePascal}}.create(data)
   }
 
-  async update(id: number, data: Update{{moduleNamePascal}}Data): Promise<{{moduleNamePascal}}> {
+  async update(id: number, data: Update{{moduleNamePascal}}Dto): Promise<{{moduleNamePascal}}> {
     const {{moduleName}} = await {{moduleNamePascal}}.findOrFail(id)
     {{moduleName}}.merge(data)
     await {{moduleName}}.save()

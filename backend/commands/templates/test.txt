@@ -1,0 +1,43 @@
+import { test } from '@japa/runner'
+import { ApiClient } from '@japa/api-client'
+
+test.group('{{moduleNamePascal}}', () => {
+  test('should create a new {{moduleNamePascal}}', async ({ client }: { client: ApiClient }) => {
+    const response = await client.post('/{{moduleNamePascal}}').json({
+      name: 'Test {{moduleNamePascal}}',
+      description: 'Test description'
+    })
+
+    response.assertStatus(201)
+    response.assertBodyContains({
+      name: 'Test {{moduleNamePascal}}'
+    })
+  })
+
+  test('should list all {{moduleNamePascal}}s', async ({ client }: { client: ApiClient }) => {
+    const response = await client.get('/{{moduleNamePascal}}')
+
+    response.assertStatus(200)
+    response.assertBodyContains([])
+  })
+
+  test('should get a specific {{moduleNamePascal}}', async ({ client }: { client: ApiClient }) => {
+    const response = await client.get('/{{moduleNamePascal}}/1')
+
+    response.assertStatus(200)
+  })
+
+  test('should update a {{moduleNamePascal}}', async ({ client }: { client: ApiClient }) => {
+    const response = await client.put('/{{moduleNamePascal}}/1').json({
+      name: 'Updated {{moduleNamePascal}}'
+    })
+
+    response.assertStatus(200)
+  })
+
+  test('should delete a {{moduleNamePascal}}', async ({ client }: { client: ApiClient }) => {
+    const response = await client.delete('/{{moduleNamePascal}}/1')
+
+    response.assertStatus(204)
+  })
+})
