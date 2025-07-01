@@ -11,6 +11,7 @@ import swagger from '#config/swagger'
 import router from '@adonisjs/core/services/router'
 import authRoutes from '#modules/auth/routes/auth_routes'
 import userRoutes from '#modules/user/routes/user_routes'
+import tenantRoutes from '#modules/tenant/routes/tenant_routes'
 
 router.get('swagger', async () => {
   return AutoSwagger.default.docs(router.toJSON(), swagger)
@@ -41,3 +42,4 @@ router.get('/', async () => {
 // Register module routes
 authRoutes()
 userRoutes()
+tenantRoutes()
