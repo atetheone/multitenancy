@@ -47,11 +47,11 @@ test.group('Authentication', (group) => {
     response.assertStatus(200)
 
     const body = response.body()
-    assert.exists(body.user)
-    assert.exists(body.token)
-    assert.equal(body.user.email, credentials.email)
-    assert.isString(body.token.token)
-    assert.isNumber(body.token.expiresIn)
+    assert.exists(body.data.user)
+    assert.exists(body.data.token)
+    assert.equal(body.data.user.email, credentials.email)
+    assert.isString(body.data.token.token)
+    assert.equal(body.data.token.expiresIn, '1h')
   })
 
   test('should reject invalid credentials', async ({ client }) => {
@@ -160,7 +160,7 @@ test.group('Authentication', (group) => {
       .header('Content-Type', 'application/json')
       .header('X-Tenant-Slug', tenant.slug)
 
-    const { token } = loginResponse.body()
+    const { token } = loginResponse.body().data
 
     // Use token to get current user
     const meResponse = await client
@@ -172,7 +172,7 @@ test.group('Authentication', (group) => {
     meResponse.assertStatus(200)
 
     const userData = meResponse.body()
-    assert.equal(userData.email, 'current@example.com')
+    assert.equal(userData.data.email, 'current@example.com')
   })
 
   test('should reject access with invalid token', async ({ client }) => {
@@ -219,7 +219,7 @@ test.group('Authentication', (group) => {
       .header('Content-Type', 'application/json')
       .header('X-Tenant-Slug', tenant.slug)
 
-    const { token } = loginResponse.body()
+    const { token } = loginResponse.body().data
 
     // Logout
     const logoutResponse = await client
@@ -255,8 +255,9 @@ test.group('Authentication', (group) => {
     response.assertStatus(201)
 
     const body = response.body()
-    assert.exists(body.user)
-    assert.equal(body.user.email, registrationData.email)
+    assert.isTrue(body.success)
+    assert.exists(body.data.user)
+    assert.equal(body.data.user.email, registrationData.email)
 
     // Verify user was created and associated with tenant
     const user = await User.findBy('email', registrationData.email)

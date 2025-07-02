@@ -41,6 +41,15 @@ export default class AuthController {
         data: result,
       })
     } catch (error) {
+      // Check if it's an inactive account error to return proper status
+      if (error.code === 'E_ACCOUNT_INACTIVE') {
+        return response.status(403).json({
+          success: false,
+          message: 'Account is not active',
+          error: error.message,
+        })
+      }
+
       return response.status(401).json({
         success: false,
         message: 'Login failed',
@@ -49,9 +58,9 @@ export default class AuthController {
     }
   }
 
-  async logout({ auth, response }: HttpContext) {
+  async logout({ response }: HttpContext) {
     try {
-      await this.authService.logout(auth)
+      await this.authService.logout()
 
       return response.json({
         success: true,

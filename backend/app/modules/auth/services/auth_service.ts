@@ -48,6 +48,12 @@ export default class AuthService {
       lastName: data.lastName,
     })
 
+    // Associate user with current tenant
+    const tenant = this.ctx.request.tenant
+    if (tenant) {
+      await user.related('tenants').attach([tenant.id])
+    }
+
     // For now, return without auth token generation for registration
     return {
       user: user.serialize() as UserResponseDto,
@@ -58,8 +64,11 @@ export default class AuthService {
     }
   }
 
-  async logout(auth: any): Promise<void> {
-    await auth.use('jwt').logout()
+  async logout(): Promise<void> {
+    // With JWT, logout is handled client-side by discarding the token
+    // For enhanced security, you could implement token blacklisting here
+    // For now, we just return success - token invalidation happens client-side
+    return
   }
 
   async refreshToken(expiredToken: string): Promise<TokenDto> {

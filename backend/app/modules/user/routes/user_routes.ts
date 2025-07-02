@@ -21,5 +21,5 @@ export default function userRoutes() {
       router.put('/:id/profile', [UserController, 'updateProfile'])
     })
     .prefix('/api/users')
-    .use(middleware.auth())
+    .use([middleware.auth({ guards: ['jwt'] }), middleware.tenant()])
 }

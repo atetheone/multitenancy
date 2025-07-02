@@ -32,6 +32,15 @@ export default class TenantMiddleware {
     }
 
     if (!tenant) {
+      // Return 400 if no tenant identifier was provided at all
+      if (!tenantSlug && (!ctx.request.header('host') || !ctx.request.header('host')!.includes('.'))) {
+        throw new Exception('Tenant context required. Please provide X-Tenant-Slug header or use tenant subdomain.', {
+          status: 400,
+          code: 'E_TENANT_CONTEXT_REQUIRED',
+        })
+      }
+      
+      // Return 404 if tenant identifier was provided but tenant not found
       throw new Exception('Tenant not found', {
         status: 404,
         code: 'E_TENANT_NOT_FOUND',

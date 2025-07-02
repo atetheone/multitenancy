@@ -21,7 +21,13 @@ export default class UserController {
 
       return response.json({
         success: true,
-        data: users,
+        data: users.toJSON().data,
+        meta: {
+          total: users.total,
+          perPage: users.perPage,
+          currentPage: users.currentPage,
+          lastPage: users.lastPage,
+        },
       })
     } catch (error) {
       return response.status(500).json({

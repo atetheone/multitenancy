@@ -6,6 +6,33 @@ import Tenant from '#modules/tenant/models/tenant'
 test.group('User-Tenant Integration', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
+  // Helper function to create authenticated user
+  async function createAuthenticatedUser(client: any, tenant: any) {
+    const adminUser = await User.create({
+      email: 'admin@example.com',
+      password: 'password123',
+      status: 'active',
+    })
+
+    await adminUser.related('profile').create({
+      firstName: 'Admin',
+      lastName: 'User',
+    })
+
+    await adminUser.related('tenants').attach([tenant.id])
+
+    const loginResponse = await client
+      .post('/api/auth/login')
+      .json({
+        email: 'admin@example.com',
+        password: 'password123',
+      })
+      .header('Content-Type', 'application/json')
+      .header('X-Tenant-Slug', tenant.slug)
+
+    return loginResponse.body().data.token
+  }
+
   test('should create user within tenant context', async ({ client, assert }) => {
     // First create a tenant
     const tenant = await Tenant.create({
@@ -14,6 +41,9 @@ test.group('User-Tenant Integration', (group) => {
       status: 'active',
       settings: {},
     })
+
+    // Authenticate as admin
+    const token = await createAuthenticatedUser(client, tenant)
 
     const userData = {
       email: 'test@example.com',
@@ -26,11 +56,14 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token.token}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     response.assertStatus(201)
     response.assertBodyContains({
-      email: userData.email,
+      data: {
+        email: userData.email,
+      },
     })
 
     // Verify user was created
@@ -52,6 +85,9 @@ test.group('User-Tenant Integration', (group) => {
       settings: {},
     })
 
+    // Authenticate as admin
+    const token = await createAuthenticatedUser(client, tenant)
+
     const userData = {
       email: 'tenant-user@example.com',
       password: 'password123',
@@ -63,6 +99,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token.token}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     response.assertStatus(201)
@@ -77,6 +114,16 @@ test.group('User-Tenant Integration', (group) => {
   })
 
   test('should reject user creation without tenant context', async ({ client }) => {
+    // Create a tenant and get auth token
+    const tenant = await Tenant.create({
+      name: 'Test Store',
+      slug: 'test-store',
+      status: 'active',
+      settings: {},
+    })
+
+    const token = await createAuthenticatedUser(client, tenant)
+
     const userData = {
       email: 'no-tenant@example.com',
       password: 'password123',
@@ -88,6 +135,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token.token}`)
     // No X-Tenant-Slug header
 
     response.assertStatus(400) // Should reject without tenant context
@@ -101,6 +149,9 @@ test.group('User-Tenant Integration', (group) => {
       settings: {},
     })
 
+    // Authenticate as admin
+    const token = await createAuthenticatedUser(client, tenant)
+
     const userData = {
       email: 'duplicate@example.com',
       password: 'password123',
@@ -113,6 +164,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token.token}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     // Try to create duplicate
@@ -124,8 +176,10 @@ test.group('User-Tenant Integration', (group) => {
         lastName: 'User',
       })
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token.token}`)
       .header('X-Tenant-Slug', tenant.slug)
 
+    console.log('Duplicate response body:', duplicateResponse.body())
     duplicateResponse.assertStatus(409) // Conflict - email already exists
   })
 
@@ -145,6 +199,12 @@ test.group('User-Tenant Integration', (group) => {
       settings: {},
     })
 
+    // Authenticate as admin for tenant1
+    const token1 = await createAuthenticatedUser(client, tenant1)
+
+    // Authenticate as admin for tenant2
+    const token2 = await createAuthenticatedUser(client, tenant2)
+
     const userData = {
       email: 'shared@example.com',
       password: 'password123',
@@ -157,6 +217,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token1.token}`)
       .header('X-Tenant-Slug', tenant1.slug)
 
     response1.assertStatus(201)
@@ -166,6 +227,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
+      .header('Authorization', `Bearer ${token2.token}`)
       .header('X-Tenant-Slug', tenant2.slug)
 
     response2.assertStatus(201)

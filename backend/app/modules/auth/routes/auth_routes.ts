@@ -20,4 +20,5 @@ export default function authRoutes() {
         .use(middleware.auth())
     })
     .prefix('/api/auth')
+    .use(middleware.tenant())
 }

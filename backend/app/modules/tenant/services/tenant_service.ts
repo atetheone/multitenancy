@@ -1,24 +1,6 @@
+import { Exception } from '@adonisjs/core/exceptions'
+import { CreateTenantDto, UpdateTenantDto } from '../dtos/tenant_dto.js'
 import Tenant from '../models/tenant.js'
-
-export interface CreateTenantData {
-  name: string
-  slug: string
-  domain?: string
-  description?: string
-  logo?: string
-  settings?: Record<string, any>
-  status?: 'active' | 'inactive' | 'suspended'
-}
-
-export interface UpdateTenantData {
-  name?: string
-  slug?: string
-  domain?: string
-  description?: string
-  logo?: string
-  settings?: Record<string, any>
-  status?: 'active' | 'inactive' | 'suspended'
-}
 
 export default class TenantService {
   async findById(id: number): Promise<Tenant | null> {
@@ -29,24 +11,33 @@ export default class TenantService {
     return await Tenant.query().paginate(page, limit)
   }
 
-  async create(data: CreateTenantData): Promise<Tenant> {
-    const slug = data.slug || (await this.generateSlug(data.name))
+  async create(dto: CreateTenantDto): Promise<Tenant> {
+    const slug = dto.slug || (await this.generateSlug(dto.name))
 
-    const tenantData = {
-      name: data.name,
-      slug: slug,
-      domain: data.domain || null,
-      description: data.description || null,
-      logo: data.logo || null,
-      settings: data.settings || {},
-      status: data.status || 'active',
+    // Check if slug already exists
+    const existingTenant = await this.findBySlug(slug)
+    if (existingTenant) {
+      throw new Exception('Slug already exists', {
+        status: 409,
+        code: 'E_SLUG_EXISTS',
+      })
     }
-    return await Tenant.create(tenantData)
+
+    const tenantDto = {
+      name: dto.name,
+      slug: slug,
+      domain: dto.domain || null,
+      description: dto.description || null,
+      logo: dto.logo || null,
+      settings: dto.settings || {},
+      status: dto.status || 'active',
+    }
+    return await Tenant.create(tenantDto)
   }
 
-  async update(id: number, data: UpdateTenantData): Promise<Tenant> {
+  async update(id: number, dto: UpdateTenantDto): Promise<Tenant> {
     const tenant = await Tenant.findOrFail(id)
-    tenant.merge(data)
+    tenant.merge(dto)
     await tenant.save()
     return tenant
   }

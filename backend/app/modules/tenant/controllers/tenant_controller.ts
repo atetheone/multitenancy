@@ -12,7 +12,17 @@ export default class TenantController {
 
       const tenants = await this.tenantService.paginate(page, limit)
 
-      return response.json(tenants)
+      return response.json({
+        success: true,
+        message: 'Liste des tenants récupérée avec succès',
+        data: tenants.toJSON().data,
+        meta: {
+          total: tenants.total,
+          perPage: tenants.perPage,
+          currentPage: tenants.currentPage,
+          lastPage: tenants.lastPage,
+        },
+      })
     } catch (error) {
       return response.status(500).json({
         success: false,
@@ -33,7 +43,11 @@ export default class TenantController {
         })
       }
 
-      return response.json(tenant)
+      return response.json({
+        success: true,
+        message: 'Tenant récupéré avec succès',
+        data: tenant,
+      })
     } catch (error) {
       return response.status(500).json({
         success: false,
@@ -44,18 +58,14 @@ export default class TenantController {
   }
 
   async store({ request, response }: HttpContext) {
-    try {
-      const data = await request.validateUsing(tenantValidator.create)
-      const tenant = await this.tenantService.create(data)
+    const data = await request.validateUsing(tenantValidator.create)
+    const tenant = await this.tenantService.create(data)
 
-      return response.status(201).json(tenant)
-    } catch (error) {
-      return response.status(400).json({
-        success: false,
-        message: 'Erreur lors de la création',
-        errors: error.messages || [error.message],
-      })
-    }
+    return response.status(201).json({
+      success: true,
+      message: 'Tenant créé avec succès',
+      data: tenant,
+    })
   }
 
   async update({ params, request, response }: HttpContext) {
@@ -63,7 +73,11 @@ export default class TenantController {
       const data = await request.validateUsing(tenantValidator.update)
       const tenant = await this.tenantService.update(params.id, data)
 
-      return response.json(tenant)
+      return response.json({
+        success: true,
+        message: 'Tenant mis à jour avec succès',
+        data: tenant,
+      })
     } catch (error) {
       return response.status(400).json({
         success: false,
@@ -77,7 +91,10 @@ export default class TenantController {
     try {
       await this.tenantService.delete(params.id)
 
-      return response.status(204).send('')
+      return response.status(204).json({
+        success: true,
+        message: 'Tenant supprimé avec succès',
+      })
     } catch (error) {
       return response.status(500).json({
         success: false,

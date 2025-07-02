@@ -20,10 +20,12 @@ test.group('Tenant Management', (group) => {
 
     response.assertStatus(201)
     response.assertBodyContains({
-      name: tenantData.name,
-      slug: tenantData.slug,
-      description: tenantData.description,
-      status: tenantData.status,
+      data: {
+        name: tenantData.name,
+        slug: tenantData.slug,
+        description: tenantData.description,
+        status: tenantData.status,
+      },
     })
 
     // Verify tenant was saved to database
@@ -52,7 +54,8 @@ test.group('Tenant Management', (group) => {
       .json(duplicateData)
       .header('Content-Type', 'application/json')
 
-    response.assertStatus(422)
+    console.log('response body for duplicate trial:\n' + response.body())
+    response.assertStatus(409)
   })
 
   test('should get tenant by ID', async ({ client, assert }) => {
@@ -69,9 +72,11 @@ test.group('Tenant Management', (group) => {
 
     response.assertStatus(200)
     response.assertBodyContains({
-      id: tenant.id,
-      name: tenant.name,
-      slug: tenant.slug,
+      data: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+      },
     })
   })
 
@@ -115,9 +120,11 @@ test.group('Tenant Management', (group) => {
 
     response.assertStatus(200)
     response.assertBodyContains({
-      id: tenant.id,
-      name: updateData.name,
-      description: updateData.description,
+      data: {
+        id: tenant.id,
+        name: updateData.name,
+        description: updateData.description,
+      },
     })
 
     // Verify database update
