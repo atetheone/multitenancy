@@ -77,7 +77,7 @@ export default class UserController {
       })
     } catch (error) {
       this.logger.error(`Error creating user: ${error.message}`, { error })
-      return response.status(400).json({
+      return response.status(error.status || 400).json({
         success: false,
         message: 'Erreur lors de la création',
         errors: error.messages || [error.message],

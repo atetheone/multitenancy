@@ -2,8 +2,12 @@ import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
 import { CreateUserDto, UpdateUserDto, UpdateUserProfileDto } from '../dtos/user.js'
 import User from '../models/user.js'
+import { inject } from '@adonisjs/core'
+import { HttpContext } from '@adonisjs/core/http'
 
+@inject()
 export default class UserService {
+  constructor(protected ctx: HttpContext) {}
   async findById(id: number): Promise<User | null> {
     return await User.find(id)
   }
@@ -12,8 +16,59 @@ export default class UserService {
     return await User.query().paginate(page, limit)
   }
 
-  async create(Dto: CreateUserDto): Promise<User> {
-    return await User.create(Dto)
+  async create(data: any): Promise<User> {
+    const tenant = this.ctx.request.tenant
+    
+    // Check if user already exists
+    const existingUser = await User.findBy('email', data.email)
+    if (existingUser) {
+      if (tenant) {
+        // Check if user is already associated with this tenant
+        await existingUser.load('tenants')
+        const isAssociated = existingUser.tenants.some(t => t.id === tenant.id)
+        
+        if (isAssociated) {
+          throw new Exception('Email already exists', {
+            status: 409,
+            code: 'E_EMAIL_EXISTS',
+          })
+        } else {
+          // Associate existing user with new tenant
+          await existingUser.related('tenants').attach([tenant.id])
+          await existingUser.load('profile')
+          return existingUser
+        }
+      } else {
+        throw new Exception('Email already exists', {
+          status: 409,
+          code: 'E_EMAIL_EXISTS',
+        })
+      }
+    }
+
+    // Create new user
+    const user = await User.create({
+      email: data.email,
+      password: data.password,
+      status: 'active',
+    })
+
+    // Create profile if firstName/lastName provided
+    if (data.firstName || data.lastName) {
+      await user.related('profile').create({
+        firstName: data.firstName,
+        lastName: data.lastName,
+      })
+    }
+
+    // Associate with tenant if available
+    if (tenant) {
+      await user.related('tenants').attach([tenant.id])
+    }
+
+    // Load profile for response
+    await user.load('profile')
+    return user
   }
 
   async update(id: number, Dto: UpdateUserDto): Promise<User> {

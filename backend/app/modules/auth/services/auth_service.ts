@@ -14,17 +14,39 @@ export default class AuthService {
   }
 
   async authenticate(credentials: LoginDto): Promise<AuthResponseDto> {
-    const user = await User.verifyCredentials(credentials.email, credentials.password)
+    try {
+      const user = await User.verifyCredentials(credentials.email, credentials.password)
+      
+      await this.validateUserStatus(user)
 
-    await this.validateUserStatus(user)
+      // Generate JWT token
+      const token = (await this.ctx.auth.use('jwt').generate(user)) as {
+        token: string
+        expiresIn: number
+      }
 
-    const token = await this.generateToken(user)
+      // Create refresh token
+      const refreshToken = await User.refreshTokens.create(user)
 
-    await this.updateLoginInfo(user)
+      await this.updateLoginInfo(user)
 
-    return {
-      user: user.serialize() as UserResponseDto,
-      token,
+      return {
+        user: user.serialize() as UserResponseDto,
+        token: {
+          accessToken: token.token,
+          refreshToken: refreshToken.value!.release(),
+          expiresIn: token.expiresIn || 3600,
+        },
+      }
+    } catch (error) {
+      // If it's a credentials error, throw 401
+      if (error.code === 'E_INVALID_CREDENTIALS' || error.status === 400) {
+        throw new Exception('Invalid credentials', {
+          status: 401,
+          code: 'E_INVALID_CREDENTIALS',
+        })
+      }
+      throw error
     }
   }
 
@@ -54,34 +76,38 @@ export default class AuthService {
       await user.related('tenants').attach([tenant.id])
     }
 
-    // For now, return without auth token generation for registration
+    // Generate JWT token
+    const tokenResult = (await this.ctx.auth.use('jwt').generate(user)) as {
+      token: string
+      expiresIn: number
+    }
+
+    const token = tokenResult as { token: string; expiresIn: number }
+
+    // Create refresh token
+    const refreshToken = await User.refreshTokens.create(user)
+
     return {
       user: user.serialize() as UserResponseDto,
       token: {
-        token: 'temp-token',
-        expiresIn: 3600,
+        accessToken: token.token,
+        refreshToken: refreshToken.value!.release(),
+        expiresIn: token.expiresIn,
       },
     }
   }
 
   async logout(): Promise<void> {
-    // With JWT, logout is handled client-side by discarding the token
-    // For enhanced security, you could implement token blacklisting here
-    // For now, we just return success - token invalidation happens client-side
-    return
-  }
-
-  async refreshToken(expiredToken: string): Promise<TokenDto> {
-    // Implementation depends on the refresh token strategy
-    console.log('Refresh token:', expiredToken)
-    throw new Exception('Refresh token implementation needed', {
-      status: 501,
-      code: 'E_NOT_IMPLEMENTED',
-    })
+    // For JWT, we just need to let the client handle token removal
+    // Server-side logout would require blacklisting tokens
+    // For now, we'll just return success as JWT is stateless
+    return Promise.resolve()
   }
 
   async getCurrentUser(): Promise<UserResponseDto> {
-    return this.user.serialize() as UserResponseDto
+    const user = await this.user
+    await user.load('profile')
+    return user.serialize() as UserResponseDto
   }
 
   private async validateUserStatus(user: User): Promise<void> {
@@ -90,15 +116,6 @@ export default class AuthService {
         status: 403,
         code: 'E_ACCOUNT_INACTIVE',
       })
-    }
-  }
-
-  private async generateToken(user: User): Promise<TokenDto> {
-    const token = (await this.ctx.auth.use('jwt').generate(user)) as TokenDto
-
-    return {
-      token: token.token,
-      expiresIn: token.expiresIn,
     }
   }
 

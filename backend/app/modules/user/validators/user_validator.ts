@@ -5,6 +5,8 @@ export const userValidator = {
     vine.object({
       email: vine.string().email(),
       password: vine.string().minLength(6),
+      firstName: vine.string().minLength(1).maxLength(50).optional(),
+      lastName: vine.string().minLength(1).maxLength(50).optional(),
       fullName: vine.string().minLength(2).maxLength(255).optional(),
       status: vine.enum(['active', 'inactive', 'suspended']).optional(),
     })

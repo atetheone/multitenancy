@@ -17,7 +17,7 @@ const authConfig = defineConfig({
   default: 'jwt',
   guards: {
     jwt: jwtGuard({
-      tokenExpiresIn: '1h',
+      tokenExpiresIn: 3600, // 1 hour in seconds
       useCookies: false,
 
       provider: sessionUserProvider({

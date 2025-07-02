@@ -50,8 +50,9 @@ test.group('Authentication', (group) => {
     assert.exists(body.data.user)
     assert.exists(body.data.token)
     assert.equal(body.data.user.email, credentials.email)
-    assert.isString(body.data.token.token)
-    assert.equal(body.data.token.expiresIn, '1h')
+    assert.isString(body.data.token.accessToken)
+    assert.isString(body.data.token.refreshToken)
+    assert.isNumber(body.data.token.expiresIn)
   })
 
   test('should reject invalid credentials', async ({ client }) => {
@@ -165,7 +166,7 @@ test.group('Authentication', (group) => {
     // Use token to get current user
     const meResponse = await client
       .get('/api/auth/me')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
       .header('Content-Type', 'application/json')
       .header('X-Tenant-Slug', tenant.slug)
 
@@ -224,7 +225,7 @@ test.group('Authentication', (group) => {
     // Logout
     const logoutResponse = await client
       .post('/api/auth/logout')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
       .header('Content-Type', 'application/json')
       .header('X-Tenant-Slug', tenant.slug)
 
@@ -241,7 +242,7 @@ test.group('Authentication', (group) => {
 
     const registrationData = {
       email: 'register@example.com',
-      password: 'password123',
+      password: 'Password123',
       firstName: 'New',
       lastName: 'User',
     }

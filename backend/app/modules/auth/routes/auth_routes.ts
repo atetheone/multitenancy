@@ -15,7 +15,6 @@ export default function authRoutes() {
         .group(() => {
           router.get('/me', [AuthController, 'me'])
           router.post('/logout', [AuthController, 'logout'])
-          router.post('/validate-token', [AuthController, 'validateToken'])
         })
         .use(middleware.auth())
     })

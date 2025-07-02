@@ -8,23 +8,35 @@ test.group('User-Tenant Integration', (group) => {
 
   // Helper function to create authenticated user
   async function createAuthenticatedUser(client: any, tenant: any) {
-    const adminUser = await User.create({
-      email: 'admin@example.com',
-      password: 'password123',
-      status: 'active',
-    })
+    const adminEmail = `admin-${tenant.slug}@example.com`
+    
+    let adminUser = await User.findBy('email', adminEmail)
+    
+    if (!adminUser) {
+      adminUser = await User.create({
+        email: adminEmail,
+        password: 'password123',
+        status: 'active',
+      })
 
-    await adminUser.related('profile').create({
-      firstName: 'Admin',
-      lastName: 'User',
-    })
+      await adminUser.related('profile').create({
+        firstName: 'Admin',
+        lastName: 'User',
+      })
+    }
 
-    await adminUser.related('tenants').attach([tenant.id])
+    // Check if user is already associated with this tenant
+    await adminUser.load('tenants')
+    const isAssociated = adminUser.tenants.some(t => t.id === tenant.id)
+    
+    if (!isAssociated) {
+      await adminUser.related('tenants').attach([tenant.id])
+    }
 
     const loginResponse = await client
       .post('/api/auth/login')
       .json({
-        email: 'admin@example.com',
+        email: adminEmail,
         password: 'password123',
       })
       .header('Content-Type', 'application/json')
@@ -56,7 +68,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     response.assertStatus(201)
@@ -99,7 +111,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     response.assertStatus(201)
@@ -135,7 +147,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
     // No X-Tenant-Slug header
 
     response.assertStatus(400) // Should reject without tenant context
@@ -164,7 +176,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     // Try to create duplicate
@@ -176,7 +188,7 @@ test.group('User-Tenant Integration', (group) => {
         lastName: 'User',
       })
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token.token}`)
+      .header('Authorization', `Bearer ${token.accessToken}`)
       .header('X-Tenant-Slug', tenant.slug)
 
     console.log('Duplicate response body:', duplicateResponse.body())
@@ -217,7 +229,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token1.token}`)
+      .header('Authorization', `Bearer ${token1.accessToken}`)
       .header('X-Tenant-Slug', tenant1.slug)
 
     response1.assertStatus(201)
@@ -227,7 +239,7 @@ test.group('User-Tenant Integration', (group) => {
       .post('/api/users')
       .json(userData)
       .header('Content-Type', 'application/json')
-      .header('Authorization', `Bearer ${token2.token}`)
+      .header('Authorization', `Bearer ${token2.accessToken}`)
       .header('X-Tenant-Slug', tenant2.slug)
 
     response2.assertStatus(201)

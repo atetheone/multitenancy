@@ -16,6 +16,35 @@ export interface AuthResponseDto {
   user: UserResponseDto
   token: TokenDto
 }
+export interface TokenDto {
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+  tokenType?: string
+}
+
+export interface RefreshTokenDto {
+  refreshToken: string
+}
+
+export interface RefreshTokenDto {
+  refreshToken: string
+}
+
+export interface ValidateTokenDto {
+  token: string
+}
+
+export interface RevokeTokenDto {
+  refreshToken: string
+}
+
+// Response DTOs
+export interface TokenValidationResponseDto {
+  valid: boolean
+  user?: UserResponseDto
+  expiresAt?: string
+}
 
 export interface UserResponseDto {
   id: number
@@ -24,14 +53,11 @@ export interface UserResponseDto {
   lastLoginAt: string | null
   createdAt: string
   updatedAt: string
-}
-
-export interface TokenDto {
-  token: string
-  refreshToken?: string
-  expiresIn: number
-}
-
-export interface RefreshTokenDto {
-  refreshToken: string
+  profile?: {
+    id: number
+    firstName: string | null
+    lastName: string | null
+    phone: string | null
+    profilePictureUrl: string | null
+  }
 }
