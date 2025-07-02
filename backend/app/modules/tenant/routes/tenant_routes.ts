@@ -1,4 +1,3 @@
-import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 const TenantController = () => import('../controllers/tenant_controller.js')
 
@@ -12,5 +11,4 @@ export default function tenantRoutes() {
       router.delete('/:id', [TenantController, 'destroy'])
     })
     .prefix('/api/tenants')
-    // No tenant middleware - these are platform/admin level operations
 }
