@@ -1,7 +1,7 @@
 import User from '#modules/user/models/user'
 import { DateTime } from 'luxon'
 import { Exception } from '@adonisjs/core/exceptions'
-import { LoginDto, RegisterDto, AuthResponseDto, UserResponseDto, TokenDto } from '../dtos/auth.js'
+import { LoginDto, RegisterDto, AuthResponseDto, UserResponseDto, TokenDto } from '../dtos/auth_dto.js'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 

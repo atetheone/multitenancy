@@ -1,6 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
-import { CreateUserDto, UpdateUserDto, UpdateUserProfileDto } from '../dtos/user.js'
+import { CreateUserDto, UpdateUserDto, UpdateUserProfileDto } from '../dtos/user_dto.js'
 import User from '../models/user.js'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
@@ -18,15 +18,15 @@ export default class UserService {
 
   async create(data: any): Promise<User> {
     const tenant = this.ctx.request.tenant
-    
+
     // Check if user already exists
     const existingUser = await User.findBy('email', data.email)
     if (existingUser) {
       if (tenant) {
         // Check if user is already associated with this tenant
         await existingUser.load('tenants')
-        const isAssociated = existingUser.tenants.some(t => t.id === tenant.id)
-        
+        const isAssociated = existingUser.tenants.some((t) => t.id === tenant.id)
+
         if (isAssociated) {
           throw new Exception('Email already exists', {
             status: 409,
