@@ -1,7 +1,8 @@
 export interface CreateUserDto {
+  lastName: string
+  firstName: string
   email: string
   password: string
-  fullName?: string
   status?: 'active' | 'inactive' | 'suspended'
 }
 

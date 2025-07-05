@@ -1,13 +1,17 @@
 import User from '#modules/user/models/user'
 import { DateTime } from 'luxon'
 import { Exception } from '@adonisjs/core/exceptions'
-import { LoginDto, RegisterDto, AuthResponseDto, UserResponseDto, TokenDto } from '../dtos/auth_dto.js'
+import { LoginDto, RegisterDto, AuthResponseDto, UserResponseDto } from '../dtos/auth_dto.js'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
+import RbacService from '#modules/rbac/services/rbac_service'
 
 @inject()
 export default class AuthService {
-  constructor(protected ctx: HttpContext) {}
+  constructor(
+    protected ctx: HttpContext,
+    protected rbacService: RbacService
+  ) {}
 
   get user() {
     return this.ctx.auth.getUserOrFail()
@@ -16,7 +20,7 @@ export default class AuthService {
   async authenticate(credentials: LoginDto): Promise<AuthResponseDto> {
     try {
       const user = await User.verifyCredentials(credentials.email, credentials.password)
-      
+
       await this.validateUserStatus(user)
 
       // Generate JWT token
@@ -75,6 +79,11 @@ export default class AuthService {
     if (tenant) {
       await user.related('tenants').attach([tenant.id])
     }
+
+    // Assign default role if available
+    await this.rbacService.assignDefaultRole(user, this.ctx.request.tenantId!) // Use events  later
+
+    // Send verification email if enabled
 
     // Generate JWT token
     const tokenResult = (await this.ctx.auth.use('jwt').generate(user)) as {

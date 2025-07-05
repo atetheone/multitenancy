@@ -7,6 +7,7 @@ import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
+import Role from '#modules/rbac/models/role'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -53,6 +54,13 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @manyToMany(() => Tenant, { pivotTable: 'user_tenants' })
   declare tenants: ManyToMany<typeof Tenant>
 
+  @manyToMany(() => Role, {
+    pivotTable: 'user_roles',
+    pivotColumns: ['tenant_id'],
+    pivotTimestamps: true,
+  })
+  declare roles: ManyToMany<typeof Role>
+
   @column.dateTime({
     autoCreate: true,
     serialize: (value: DateTime) => {
@@ -76,18 +84,4 @@ export default class User extends compose(BaseModel, AuthFinder) {
     type: 'jwt_refresh_token',
     tokenSecretLength: 40,
   })
-  /*
-    having a table called 
-      jwt_refresh_tokens: {
-        tokenable_id: 'integer',
-        type: 'string',
-        name: 'string',
-        hash: 'string'(80),
-        abilities: 'text',
-        expires_at: 'dateTime',
-        created_at: 'dateTime',
-        updated_at: 'dateTime',
-        last_used_at: 'dateTime',
-      }
-  */
 }

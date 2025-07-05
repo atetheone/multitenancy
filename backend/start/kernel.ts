@@ -45,4 +45,6 @@ export const middleware = router.named({
   guest: () => import('#middleware/guest_middleware'),
   auth: () => import('#middleware/auth_middleware'),
   tenant: () => import('#modules/tenant/middleware/tenant_middleware'),
+  role: () => import('#modules/rbac/middleware/role_middleware'),
+  permission: () => import('#modules/rbac/middleware/permission_middleware'),
 })

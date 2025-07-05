@@ -16,7 +16,7 @@ export default class UserService {
     return await User.query().paginate(page, limit)
   }
 
-  async create(data: any): Promise<User> {
+  async create(data: CreateUserDto): Promise<User> {
     const tenant = this.ctx.request.tenant
 
     // Check if user already exists
