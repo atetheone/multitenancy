@@ -68,24 +68,24 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
     // Generate tokens
     const app = await import('@adonisjs/core/services/app')
     const ctx = app.default.container.make('HttpContext')
-    
+
     const adminTokenObj = await ctx.auth.use('jwt').generate(adminUser)
     const customerTokenObj = await ctx.auth.use('jwt').generate(customerUser)
-    
+
     adminToken = adminTokenObj.token
     customerToken = customerTokenObj.token
   })
 
   test('should validate action:resource permission format', async ({ assert }) => {
     const permissions = await Permission.query().where('tenant_id', testTenant.id)
-    
-    permissions.forEach(permission => {
+
+    permissions.forEach((permission) => {
       // Verify action:resource format
       const parts = permission.name.split(':')
       assert.lengthOf(parts, 2, `Permission ${permission.name} should have action:resource format`)
       assert.equal(parts[0], permission.action)
       assert.equal(parts[1], permission.resource)
-      
+
       // Verify fullName getter
       assert.equal(permission.fullName, `${permission.action}:${permission.resource}`)
     })
@@ -97,12 +97,12 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
 
     // Test exact match
     assert.isTrue(readProductPermission!.matches('read:product'))
-    
+
     // Test wildcard matches
     assert.isTrue(readProductPermission!.matches('read:*'))
     assert.isTrue(readProductPermission!.matches('*:product'))
     assert.isTrue(readProductPermission!.matches('*:*'))
-    
+
     // Test non-matches
     assert.isFalse(readProductPermission!.matches('write:product'))
     assert.isFalse(readProductPermission!.matches('read:user'))
@@ -130,24 +130,24 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
   test('should validate user permission checking via service', async ({ assert }) => {
     // Admin should have manage:user permission
     const adminCanManageUsers = await permissionService.hasPermission(
-      adminUser, 
-      'manage:user', 
+      adminUser,
+      'manage:user',
       testTenant.id
     )
     assert.isTrue(adminCanManageUsers)
 
     // Customer should not have manage:user permission
     const customerCanManageUsers = await permissionService.hasPermission(
-      customerUser, 
-      'manage:user', 
+      customerUser,
+      'manage:user',
       testTenant.id
     )
     assert.isFalse(customerCanManageUsers)
 
     // Customer should have read:product permission
     const customerCanReadProducts = await permissionService.hasPermission(
-      customerUser, 
-      'read:product', 
+      customerUser,
+      'read:product',
       testTenant.id
     )
     assert.isTrue(customerCanReadProducts)
@@ -167,15 +167,15 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
 
     response.assertStatus(201)
     const body = response.body()
-    
+
     assert.isArray(body.data)
     assert.lengthOf(body.data, 5)
 
     // Verify all permissions follow correct naming
-    const expectedNames = bulkData.actions.map(action => `${action}:${bulkData.resource}`)
+    const expectedNames = bulkData.actions.map((action) => `${action}:${bulkData.resource}`)
     const actualNames = body.data.map((perm: any) => perm.name)
-    
-    expectedNames.forEach(name => {
+
+    expectedNames.forEach((name) => {
       assert.include(actualNames, name)
     })
   })
@@ -189,7 +189,7 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
 
     response.assertStatus(200)
     const body = response.body()
-    
+
     assert.isArray(body.data)
     assert.isAtLeast(body.data.length, 5) // Should have at least 5 user permissions
 
@@ -212,7 +212,7 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
 
     // Get permissions for first tenant
     const firstTenantPermissions = await permissionService.getPermissionsByTenant(testTenant.id)
-    
+
     // Get permissions for second tenant
     const secondTenantPermissions = await permissionService.getPermissionsByTenant(secondTenant.id)
 
@@ -220,10 +220,10 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
     assert.approximately(firstTenantPermissions.length, secondTenantPermissions.length, 5)
 
     // Verify no permission IDs overlap
-    const firstTenantIds = firstTenantPermissions.map(p => p.id)
-    const secondTenantIds = secondTenantPermissions.map(p => p.id)
-    
-    const intersection = firstTenantIds.filter(id => secondTenantIds.includes(id))
+    const firstTenantIds = firstTenantPermissions.map((p) => p.id)
+    const secondTenantIds = secondTenantPermissions.map((p) => p.id)
+
+    const intersection = firstTenantIds.filter((id) => secondTenantIds.includes(id))
     assert.lengthOf(intersection, 0, 'Permission IDs should not overlap between tenants')
   })
 })

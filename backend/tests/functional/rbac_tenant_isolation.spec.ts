@@ -76,10 +76,10 @@ test.group('RBAC - Tenant Isolation', (group) => {
     // Generate tokens
     const app = await import('@adonisjs/core/services/app')
     const ctx = app.default.container.make('HttpContext')
-    
+
     const tokenObjA = await ctx.auth.use('jwt').generate(adminUserA)
     const tokenObjB = await ctx.auth.use('jwt').generate(adminUserB)
-    
+
     adminTokenA = tokenObjA.token
     adminTokenB = tokenObjB.token
   })
@@ -92,15 +92,15 @@ test.group('RBAC - Tenant Isolation', (group) => {
     assert.equal(rolesA.length, rolesB.length)
 
     // But role IDs should be different
-    const roleIdsA = rolesA.map(r => r.id)
-    const roleIdsB = rolesB.map(r => r.id)
-    
-    const intersection = roleIdsA.filter(id => roleIdsB.includes(id))
+    const roleIdsA = rolesA.map((r) => r.id)
+    const roleIdsB = rolesB.map((r) => r.id)
+
+    const intersection = roleIdsA.filter((id) => roleIdsB.includes(id))
     assert.lengthOf(intersection, 0, 'Role IDs should not overlap between tenants')
 
     // Role names should be the same but for different tenants
-    const roleNamesA = rolesA.map(r => r.name).sort()
-    const roleNamesB = rolesB.map(r => r.name).sort()
+    const roleNamesA = rolesA.map((r) => r.name).sort()
+    const roleNamesB = rolesB.map((r) => r.name).sort()
     assert.deepEqual(roleNamesA, roleNamesB, 'Role names should be consistent across tenants')
   })
 
@@ -112,19 +112,23 @@ test.group('RBAC - Tenant Isolation', (group) => {
     assert.approximately(permissionsA.length, permissionsB.length, 5)
 
     // But permission IDs should be different
-    const permissionIdsA = permissionsA.map(p => p.id)
-    const permissionIdsB = permissionsB.map(p => p.id)
-    
-    const intersection = permissionIdsA.filter(id => permissionIdsB.includes(id))
+    const permissionIdsA = permissionsA.map((p) => p.id)
+    const permissionIdsB = permissionsB.map((p) => p.id)
+
+    const intersection = permissionIdsA.filter((id) => permissionIdsB.includes(id))
     assert.lengthOf(intersection, 0, 'Permission IDs should not overlap between tenants')
 
     // Permission names should be the same but for different tenants
-    const permissionNamesA = permissionsA.map(p => p.name).sort()
-    const permissionNamesB = permissionsB.map(p => p.name).sort()
-    assert.deepEqual(permissionNamesA, permissionNamesB, 'Permission names should be consistent across tenants')
+    const permissionNamesA = permissionsA.map((p) => p.name).sort()
+    const permissionNamesB = permissionsB.map((p) => p.name).sort()
+    assert.deepEqual(
+      permissionNamesA,
+      permissionNamesB,
+      'Permission names should be consistent across tenants'
+    )
   })
 
-  test('should prevent cross-tenant role access via API', async ({ client }) => {
+  test('should prevent cross-tenant role access via API', async ({ client, assert }) => {
     // Admin A should only see roles from Tenant A
     const responseA = await client
       .get('/api/rbac/roles')
@@ -145,15 +149,15 @@ test.group('RBAC - Tenant Isolation', (group) => {
 
     // Should have same number of roles but different IDs
     assert.equal(rolesA.length, rolesB.length)
-    
+
     const roleIdsA = rolesA.map((r: any) => r.id)
     const roleIdsB = rolesB.map((r: any) => r.id)
-    
+
     const intersection = roleIdsA.filter((id: number) => roleIdsB.includes(id))
     assert.lengthOf(intersection, 0, 'API should not return cross-tenant roles')
   })
 
-  test('should prevent cross-tenant permission access via API', async ({ client }) => {
+  test('should prevent cross-tenant permission access via API', async ({ client, assert }) => {
     // Admin A should only see permissions from Tenant A
     const responseA = await client
       .get('/api/rbac/permissions')
@@ -174,10 +178,10 @@ test.group('RBAC - Tenant Isolation', (group) => {
 
     // Should have similar number of permissions but different IDs
     assert.approximately(permissionsA.length, permissionsB.length, 5)
-    
+
     const permissionIdsA = permissionsA.map((p: any) => p.id)
     const permissionIdsB = permissionsB.map((p: any) => p.id)
-    
+
     const intersection = permissionIdsA.filter((id: number) => permissionIdsB.includes(id))
     assert.lengthOf(intersection, 0, 'API should not return cross-tenant permissions')
   })
@@ -238,9 +242,9 @@ test.group('RBAC - Tenant Isolation', (group) => {
     const permissionsInB = await permissionService.getUserPermissions(multiTenantUser, tenantB.id)
 
     // Should have different permission sets based on different roles
-    const permissionNamesA = permissionsInA.map(p => p.name).sort()
-    const permissionNamesB = permissionsInB.map(p => p.name).sort()
-    
+    const permissionNamesA = permissionsInA.map((p) => p.name).sort()
+    const permissionNamesB = permissionsInB.map((p) => p.name).sort()
+
     // Manager and staff should have different permission sets
     assert.notDeepEqual(permissionNamesA, permissionNamesB)
   })
@@ -251,11 +255,11 @@ test.group('RBAC - Tenant Isolation', (group) => {
     const rolesB = await roleService.getRolesByTenant(tenantB.id)
 
     // Verify all roles belong to correct tenant
-    rolesA.forEach(role => {
+    rolesA.forEach((role) => {
       assert.equal(role.tenantId, tenantA.id, `Role ${role.name} should belong to Tenant A`)
     })
 
-    rolesB.forEach(role => {
+    rolesB.forEach((role) => {
       assert.equal(role.tenantId, tenantB.id, `Role ${role.name} should belong to Tenant B`)
     })
 
@@ -263,12 +267,20 @@ test.group('RBAC - Tenant Isolation', (group) => {
     const permissionsA = await permissionService.getPermissionsByTenant(tenantA.id)
     const permissionsB = await permissionService.getPermissionsByTenant(tenantB.id)
 
-    permissionsA.forEach(permission => {
-      assert.equal(permission.tenantId, tenantA.id, `Permission ${permission.name} should belong to Tenant A`)
+    permissionsA.forEach((permission) => {
+      assert.equal(
+        permission.tenantId,
+        tenantA.id,
+        `Permission ${permission.name} should belong to Tenant A`
+      )
     })
 
-    permissionsB.forEach(permission => {
-      assert.equal(permission.tenantId, tenantB.id, `Permission ${permission.name} should belong to Tenant B`)
+    permissionsB.forEach((permission) => {
+      assert.equal(
+        permission.tenantId,
+        tenantB.id,
+        `Permission ${permission.name} should belong to Tenant B`
+      )
     })
   })
 })
