@@ -66,14 +66,8 @@ test.group('RBAC - Permission Validation & Access Control', (group) => {
     await roleService.assignRole(customerUser, 'customer', testTenant.id)
 
     // Generate tokens
-    const app = await import('@adonisjs/core/services/app')
-    const ctx = app.default.container.make('HttpContext')
-
-    const adminTokenObj = await ctx.auth.use('jwt').generate(adminUser)
-    const customerTokenObj = await ctx.auth.use('jwt').generate(customerUser)
-
-    adminToken = adminTokenObj.token
-    customerToken = customerTokenObj.token
+    adminToken = await generateToken(adminUser)
+    customerToken = await generateToken(customerUser)
   })
 
   test('should validate action:resource permission format', async ({ assert }) => {
