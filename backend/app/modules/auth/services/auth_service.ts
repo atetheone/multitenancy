@@ -4,13 +4,13 @@ import { Exception } from '@adonisjs/core/exceptions'
 import { LoginDto, RegisterDto, AuthResponseDto, UserResponseDto } from '../dtos/auth_dto.js'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
-import RbacService from '#modules/rbac/services/rbac_service'
+import RoleService from '#modules/rbac/services/role_service'
 
 @inject()
 export default class AuthService {
   constructor(
     protected ctx: HttpContext,
-    protected rbacService: RbacService
+    protected roleService: RoleService
   ) {}
 
   get user() {
@@ -81,7 +81,7 @@ export default class AuthService {
     }
 
     // Assign default role if available
-    await this.rbacService.assignDefaultRole(user, this.ctx.request.tenantId!) // Use events  later
+    await this.roleService.assignDefaultRole(user, this.ctx.request.tenantId!) // Use events  later
 
     // Send verification email if enabled
 

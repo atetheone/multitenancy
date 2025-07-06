@@ -1,6 +1,6 @@
 import vine from '@vinejs/vine'
 
-export const rbacValidator = {
+export const roleValidator = {
   create: vine.compile(
     vine.object({
       name: vine.string().minLength(1).maxLength(50),

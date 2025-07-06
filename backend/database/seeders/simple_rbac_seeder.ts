@@ -1,13 +1,13 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Tenant from '#modules/tenant/models/tenant'
-import RbacService from '#modules/rbac/services/rbac_service'
+import RoleService from '#modules/rbac/services/role_service'
 import PermissionService from '#modules/rbac/services/permission_service'
 import app from '@adonisjs/core/services/app'
 
 export default class SimpleRbacSeeder extends BaseSeeder {
   async run() {
     const permissionService = await app.container.make(PermissionService)
-    const rbacService = await app.container.make(RbacService)
+    const roleService = await app.container.make(RoleService)
     const tenants = await Tenant.all()
 
     for (const tenant of tenants) {
@@ -20,7 +20,7 @@ export default class SimpleRbacSeeder extends BaseSeeder {
         
         // Create default roles with proper permissions
         console.log(`  - Creating default roles...`)
-        await rbacService.createDefaultRoles(tenant.id)
+        await roleService.createDefaultRoles(tenant.id)
         
         console.log(`  ✅ Successfully seeded tenant: ${tenant.name}`)
       } catch (error) {

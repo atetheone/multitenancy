@@ -6,7 +6,7 @@ import { Exception } from '@adonisjs/core/exceptions'
 import { inject } from '@adonisjs/core'
 
 @inject()
-export default class RbacService {
+export default class RoleService {
   constructor(private permissionService: PermissionService) {}
 
   // Get all roles for a tenant
@@ -152,7 +152,7 @@ export default class RbacService {
       .related('roles')
       .query()
       .where('name', roleName)
-      .where('tenant_id', tenantId)
+      .where('roles.tenant_id', tenantId)
       .first()
 
     if (!existingRole) {
@@ -173,7 +173,7 @@ export default class RbacService {
     }
 
     // Remove existing roles for this user in this tenant
-    await user.related('roles').query().where('tenant_id', tenantId).delete()
+    await user.related('roles').query().where('user_roles.tenant_id', tenantId).delete()
 
     // Assign new roles
     const attachData: Record<number, { tenant_id: number }> = {}
