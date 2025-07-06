@@ -132,4 +132,20 @@ export default class AuthService {
     user.lastLoginAt = DateTime.now()
     await user.save()
   }
+
+  async generateToken(user: User): Promise<string> {
+    // Generate JWT token
+    return this.ctx.auth
+      .use('jwt')
+      .generate(user)
+      .then((result) => {
+        if ('token' in result) {
+          return result.token
+        }
+        throw new Exception('Failed to generate token', {
+          status: 500,
+          code: 'E_TOKEN_GENERATION_FAILED',
+        })
+      })
+  }
 }
