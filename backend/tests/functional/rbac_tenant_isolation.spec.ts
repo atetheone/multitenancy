@@ -342,13 +342,12 @@ test.group('RBAC - Tenant Isolation', (group) => {
 
     // Remove role from tenant A only
     const response = await client
-      .post('/api/roles/remove')
+      .delete(`/api/users/${crossTenantUser.id}/roles`)
       .headers({
         'Authorization': `Bearer ${adminTokenA}`,
         'X-Tenant-Slug': tenantA.slug,
       })
-      .json({
-        userId: crossTenantUser.id,
+      .qs({
         roleName: 'staff',
       })
 
