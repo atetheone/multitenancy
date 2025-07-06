@@ -109,7 +109,7 @@ test.group('RBAC - Tenant Isolation', (group) => {
     const permissionsB = await Permission.query().where('tenant_id', tenantB.id)
 
     // Both tenants should have same number of default permissions
-    assert.approximately(permissionsA.length, permissionsB.length, 5)
+    assert.equal(permissionsA.length, permissionsB.length, 'Default permission counts should match exactly between tenants')
 
     // But permission IDs should be different
     const permissionIdsA = permissionsA.map((p) => p.id)
