@@ -8,6 +8,7 @@ import Tenant from '#modules/tenant/models/tenant'
 import RoleService from '#modules/rbac/services/role_service'
 import PermissionService from '#modules/rbac/services/permission_service'
 import testUtils from '@adonisjs/core/services/test_utils'
+import { createTestUser, loginAndGetToken } from '#shared/utils/test_helpers'
 
 test.group('RBAC - Error Handling & Edge Cases', (group) => {
   let roleService: RoleService
@@ -30,25 +31,19 @@ test.group('RBAC - Error Handling & Edge Cases', (group) => {
   })
 
   test('should handle missing tenant context gracefully', async ({ client }) => {
-    const user = await User.create({
-      email: 'test@error.com',
-      password: 'password123',
-      status: 'active',
-    })
-
-    await user.related('profile').create({
+    const testUser = await createTestUser('test@error.com', {
       firstName: 'Test',
       lastName: 'User',
+      tenantId: testTenant.id,
     })
 
-    const app = await import('@adonisjs/core/services/app')
-    const ctx = app.default.container.make('HttpContext')
-    const tokenObj = await ctx.auth.use('jwt').generate(user)
+    // First login to get a valid token
+    const token = await loginAndGetToken(client, testUser.email, testUser.password, testTenant.slug)
 
-    // Request without tenant header should fail
+    // Then make request without tenant header (should fail)
     const response = await client
       .get('/api/rbac/roles')
-      .header('Authorization', `Bearer ${tokenObj.token}`)
+      .header('Authorization', `Bearer ${token}`)
       // Missing X-Tenant-Slug header
 
     response.assertStatus(400)

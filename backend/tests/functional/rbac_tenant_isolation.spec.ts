@@ -10,6 +10,7 @@ import Tenant from '#modules/tenant/models/tenant'
 import RoleService from '#modules/rbac/services/role_service'
 import PermissionService from '#modules/rbac/services/permission_service'
 import testUtils from '@adonisjs/core/services/test_utils'
+import { createTestTenant, loginAndGetToken, createAuthHeaders } from '#shared/utils/test_helpers'
 
 test.group('RBAC - Tenant Isolation', (group) => {
   let roleService: RoleService
@@ -27,61 +28,24 @@ test.group('RBAC - Tenant Isolation', (group) => {
     permissionService = new PermissionService()
     roleService = new RoleService(permissionService)
 
-    // Create two separate tenants
-    tenantA = await Tenant.create({
-      name: 'Tenant A Store',
-      slug: 'tenant-a',
-      status: 'active',
+    // Create two separate tenants using test helpers
+    const testTenantA = await createTestTenant('Tenant A Store', 'tenant-a', {
+      createUsers: true,
+      createRoles: true,
     })
 
-    tenantB = await Tenant.create({
-      name: 'Tenant B Store',
-      slug: 'tenant-b',
-      status: 'active',
+    const testTenantB = await createTestTenant('Tenant B Store', 'tenant-b', {
+      createUsers: true,
+      createRoles: true,
     })
 
-    // Create default roles and permissions for both tenants
-    await roleService.createDefaultRoles(tenantA.id)
-    await roleService.createDefaultRoles(tenantB.id)
-
-    // Create admin users for each tenant
-    adminUserA = await User.create({
-      email: 'admin@tenant-a.com',
-      password: 'password123',
-      status: 'active',
-    })
-
-    await adminUserA.related('profile').create({
-      firstName: 'Admin',
-      lastName: 'A',
-    })
-
-    await adminUserA.related('tenants').attach([tenantA.id])
-    await roleService.assignRole(adminUserA, 'admin', tenantA.id)
-
-    adminUserB = await User.create({
-      email: 'admin@tenant-b.com',
-      password: 'password123',
-      status: 'active',
-    })
-
-    await adminUserB.related('profile').create({
-      firstName: 'Admin',
-      lastName: 'B',
-    })
-
-    await adminUserB.related('tenants').attach([tenantB.id])
-    await roleService.assignRole(adminUserB, 'admin', tenantB.id)
-
-    // Generate tokens
-    const app = await import('@adonisjs/core/services/app')
-    const ctx = app.default.container.make('HttpContext')
-
-    const tokenObjA = await ctx.auth.use('jwt').generate(adminUserA)
-    const tokenObjB = await ctx.auth.use('jwt').generate(adminUserB)
-
-    adminTokenA = tokenObjA.token
-    adminTokenB = tokenObjB.token
+    // Extract data from test helpers
+    tenantA = testTenantA.tenant
+    tenantB = testTenantB.tenant
+    adminUserA = testTenantA.users.admin.user
+    adminUserB = testTenantB.users.admin.user
+    adminTokenA = testTenantA.users.admin.token
+    adminTokenB = testTenantB.users.admin.token
   })
 
   test('should isolate roles between tenants', async ({ assert }) => {
@@ -109,7 +73,11 @@ test.group('RBAC - Tenant Isolation', (group) => {
     const permissionsB = await Permission.query().where('tenant_id', tenantB.id)
 
     // Both tenants should have same number of default permissions
-    assert.equal(permissionsA.length, permissionsB.length, 'Default permission counts should match exactly between tenants')
+    assert.equal(
+      permissionsA.length,
+      permissionsB.length,
+      'Default permission counts should match exactly between tenants'
+    )
 
     // But permission IDs should be different
     const permissionIdsA = permissionsA.map((p) => p.id)
@@ -129,21 +97,17 @@ test.group('RBAC - Tenant Isolation', (group) => {
   })
 
   test('should prevent cross-tenant role access via API', async ({ client, assert }) => {
-    // Admin A should only see roles from Tenant A
-    const responseA = await client
-      .get('/api/rbac/roles')
-      .header('Authorization', `Bearer ${adminTokenA}`)
-      .header('X-Tenant-Slug', tenantA.slug)
+    // Create auth headers using helper
+    const headersA = createAuthHeaders(adminTokenA, tenantA.slug)
+    const headersB = createAuthHeaders(adminTokenB, tenantB.slug)
 
+    // Admin A should only see roles from Tenant A
+    const responseA = await client.get('/api/rbac/roles').headers(headersA)
     responseA.assertStatus(200)
     const rolesA = responseA.body().data
 
     // Admin B should only see roles from Tenant B
-    const responseB = await client
-      .get('/api/rbac/roles')
-      .header('Authorization', `Bearer ${adminTokenB}`)
-      .header('X-Tenant-Slug', tenantB.slug)
-
+    const responseB = await client.get('/api/rbac/roles').headers(headersB)
     responseB.assertStatus(200)
     const rolesB = responseB.body().data
 
@@ -158,26 +122,26 @@ test.group('RBAC - Tenant Isolation', (group) => {
   })
 
   test('should prevent cross-tenant permission access via API', async ({ client, assert }) => {
-    // Admin A should only see permissions from Tenant A
-    const responseA = await client
-      .get('/api/rbac/permissions')
-      .header('Authorization', `Bearer ${adminTokenA}`)
-      .header('X-Tenant-Slug', tenantA.slug)
+    // Create auth headers using helper
+    const headersA = createAuthHeaders(adminTokenA, tenantA.slug)
+    const headersB = createAuthHeaders(adminTokenB, tenantB.slug)
 
+    // Admin A should only see permissions from Tenant A
+    const responseA = await client.get('/api/rbac/permissions').headers(headersA)
     responseA.assertStatus(200)
     const permissionsA = responseA.body().data
 
     // Admin B should only see permissions from Tenant B
-    const responseB = await client
-      .get('/api/rbac/permissions')
-      .header('Authorization', `Bearer ${adminTokenB}`)
-      .header('X-Tenant-Slug', tenantB.slug)
-
+    const responseB = await client.get('/api/rbac/permissions').headers(headersB)
     responseB.assertStatus(200)
     const permissionsB = responseB.body().data
 
     // Should have the same number of permissions but different IDs
-    assert.equal(permissionsA.length, permissionsB.length, 'Permission counts should match exactly between tenants')
+    assert.equal(
+      permissionsA.length,
+      permissionsB.length,
+      'Permission counts should match exactly between tenants'
+    )
 
     const permissionIdsA = permissionsA.map((p: any) => p.id)
     const permissionIdsB = permissionsB.map((p: any) => p.id)
@@ -197,14 +161,16 @@ test.group('RBAC - Tenant Isolation', (group) => {
     await userA.related('tenants').attach([tenantA.id])
 
     // Get a role from Tenant B
-    const roleBFromB = await Role.findByName('manager', tenantB.id)
+    const roleBFromB = await Role.findByName('user', tenantB.id)
     assert.isNotNull(roleBFromB)
+
+    // Create auth headers using helper
+    const headersA = createAuthHeaders(adminTokenA, tenantA.slug)
 
     // Admin A should not be able to assign Tenant B's role to Tenant A's user
     const response = await client
       .post(`/api/rbac/users/${userA.id}/roles`)
-      .header('Authorization', `Bearer ${adminTokenA}`)
-      .header('X-Tenant-Slug', tenantA.slug)
+      .headers(headersA)
       .json({
         roleIds: [roleBFromB!.id],
         tenantId: tenantA.id, // Trying to assign cross-tenant role

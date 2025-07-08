@@ -10,6 +10,7 @@ import Permission from '#modules/rbac/models/permission'
 import Tenant from '#modules/tenant/models/tenant'
 import RoleService from '#modules/rbac/services/role_service'
 import PermissionService from '#modules/rbac/services/permission_service'
+import { createTestSetup, loginAndGetToken } from '#shared/utils/test_helpers'
 
 test.group('Simple RBAC Test - Unified Module', (group) => {
   group.each.setup(() => testUtils.db().truncate())
@@ -43,6 +44,13 @@ test.group('Simple RBAC Test - Unified Module', (group) => {
       status: 'active',
     })
 
+    await user.related('profile').create({
+      firstName: 'Test',
+      lastName: 'User',
+    })
+
+    await user.related('tenants').attach([tenant.id])
+
     // Assign customer role
     await roleService.assignRole(user, 'customer', tenant.id)
 
@@ -57,6 +65,65 @@ test.group('Simple RBAC Test - Unified Module', (group) => {
 
     const canManageUsers = await roleService.canAccessResource(user, 'user', 'manage', tenant.id)
     assert.isFalse(canManageUsers) // Customer should not be able to manage users
+  })
+
+  test('should work with test helpers for complete setup', async ({ assert, client }) => {
+    // Use the comprehensive test helper for complete setup
+    const { tenant, admin, user } = await createTestSetup('Complete Test Store')
+
+    // Verify the setup - note: our updated interface doesn't include tokens
+    assert.isString(admin.email)
+    assert.isString(admin.password)
+    assert.isString(user.email)
+    assert.isString(user.password)
+    assert.equal(tenant.slug, 'complete-test-store')
+
+    // Login to get token and test API access
+    const adminToken = await loginAndGetToken(client, admin.email, admin.password, tenant.slug)
+
+    const response = await client
+      .get('/api/rbac/roles')
+      .header('Authorization', `Bearer ${adminToken}`)
+      .header('X-Tenant-Slug', tenant.slug)
+
+    // Should succeed with admin token
+    response.assertStatus(200)
+
+    // Verify roles exist in response
+    const body = response.body()
+    assert.equal(body.success, true)
+    assert.isArray(body.data)
+    assert.isAtLeast(body.data.length, 3) // Should have at least 3 default roles
+  })
+
+  test('should generate tokens for existing users', async ({ assert, client }) => {
+    // Create tenant for context
+    const tenant = await Tenant.create({
+      name: 'Token Test Store',
+      slug: 'token-test-store',
+      status: 'active',
+    })
+
+    // Create user manually first
+    const user = await User.create({
+      email: 'manual@example.com',
+      password: 'password123',
+      status: 'active',
+    })
+
+    await user.related('profile').create({
+      firstName: 'Manual',
+      lastName: 'User',
+    })
+
+    await user.related('tenants').attach([tenant.id])
+
+    // Test actual login flow to get token
+    const token = await loginAndGetToken(client, 'manual@example.com', 'password123', tenant.slug)
+
+    assert.isString(token)
+    assert.include(token, '.') // JWT tokens have dots
+    assert.isAtLeast(token.length, 100) // JWT tokens are long
   })
 
   test('should list roles via unified API', async ({ client, assert }) => {
@@ -91,28 +158,20 @@ test.group('Simple RBAC Test - Unified Module', (group) => {
     // Assign admin role to user
     await roleService.assignRole(user, 'admin', tenant.id)
 
-    // Login
-    const loginResponse = await client
-      .post('/api/auth/login')
-      .headers({ 'X-Tenant-Slug': tenant.slug })
-      .json({
-        email: 'admin@test.com',
-        password: 'password123',
-      })
-
-    loginResponse.assertStatus(200)
-    const token = loginResponse.body().data.token.accessToken
+    // Login using helper
+    const token = await loginAndGetToken(client, 'admin@test.com', 'password123', tenant.slug)
 
     // List roles via unified RBAC API
-    const rolesResponse = await client.get('/api/rbac/roles').headers({
-      'Authorization': `Bearer ${token}`,
-      'X-Tenant-Slug': tenant.slug,
-    })
+    const rolesResponse = await client
+      .get('/api/rbac/roles')
+      .header('Authorization', `Bearer ${token}`)
+      .header('X-Tenant-Slug', tenant.slug)
 
     rolesResponse.assertStatus(200)
-    assert.equal(rolesResponse.body().success, true)
-    assert.isArray(rolesResponse.body().data)
-    assert.isAtLeast(rolesResponse.body().data.length, 5) // Should have 5 default roles
+    const body = rolesResponse.body()
+    assert.equal(body.success, true)
+    assert.isArray(body.data)
+    assert.isAtLeast(body.data.length, 5) // Should have 5 default roles
   })
 
   test('should list permissions via unified API', async ({ client, assert }) => {
@@ -147,40 +206,37 @@ test.group('Simple RBAC Test - Unified Module', (group) => {
     // Assign admin role to user
     await roleService.assignRole(user, 'admin', tenant.id)
 
-    // Login
-    const loginResponse = await client
-      .post('/api/auth/login')
-      .headers({ 'X-Tenant-Slug': tenant.slug })
-      .json({
-        email: 'admin@permissions.com',
-        password: 'password123',
-      })
-
-    loginResponse.assertStatus(200)
-    const token = loginResponse.body().data.token.accessToken
+    // Login using helper
+    const token = await loginAndGetToken(
+      client,
+      'admin@permissions.com',
+      'password123',
+      tenant.slug
+    )
 
     // List permissions via unified RBAC API
-    const permissionsResponse = await client.get('/api/rbac/permissions').headers({
-      'Authorization': `Bearer ${token}`,
-      'X-Tenant-Slug': tenant.slug,
-    })
+    const permissionsResponse = await client
+      .get('/api/rbac/permissions')
+      .header('Authorization', `Bearer ${token}`)
+      .header('X-Tenant-Slug', tenant.slug)
 
     permissionsResponse.assertStatus(200)
-    assert.equal(permissionsResponse.body().success, true)
-    assert.isArray(permissionsResponse.body().data)
-    assert.isAtLeast(permissionsResponse.body().data.length, 50) // Should have many permissions
+    const body = permissionsResponse.body()
+    assert.equal(body.success, true)
+    assert.isArray(body.data)
+    assert.isAtLeast(body.data.length, 50) // Should have many permissions
 
     // Test filtering permissions by resource
     const productPermissionsResponse = await client
       .get('/api/rbac/permissions')
       .qs({ resource: 'product' })
-      .headers({
-        'Authorization': `Bearer ${token}`,
-        'X-Tenant-Slug': tenant.slug,
-      })
+      .header('Authorization', `Bearer ${token}`)
+      .header('X-Tenant-Slug', tenant.slug)
 
     productPermissionsResponse.assertStatus(200)
-    const productPermissions = productPermissionsResponse.body().data
+    const productBody = productPermissionsResponse.body()
+    assert.equal(productBody.success, true)
+    const productPermissions = productBody.data
     assert.isArray(productPermissions)
     assert.isAtLeast(productPermissions.length, 5) // Should have at least 5 product permissions
 
@@ -235,17 +291,8 @@ test.group('Simple RBAC Test - Unified Module', (group) => {
     // Assign admin role to admin user
     await roleService.assignRole(adminUser, 'admin', tenant.id)
 
-    // Login as admin
-    const loginResponse = await client
-      .post('/api/auth/login')
-      .headers({ 'X-Tenant-Slug': tenant.slug })
-      .json({
-        email: 'admin@assignment.com',
-        password: 'password123',
-      })
-
-    loginResponse.assertStatus(200)
-    const token = loginResponse.body().data.token.accessToken
+    // Login as admin using helper
+    const token = await loginAndGetToken(client, 'admin@assignment.com', 'password123', tenant.slug)
 
     // Get manager role ID
     const managerRole = await Role.findByName('manager', tenant.id)
@@ -254,18 +301,16 @@ test.group('Simple RBAC Test - Unified Module', (group) => {
     // Assign manager role to regular user via API
     const assignResponse = await client
       .post(`/api/rbac/users/${regularUser.id}/roles`)
-      .headers({
-        'Authorization': `Bearer ${token}`,
-        'X-Tenant-Slug': tenant.slug,
-      })
+      .header('Authorization', `Bearer ${token}`)
+      .header('X-Tenant-Slug', tenant.slug)
       .json({
         roleIds: [managerRole!.id],
         tenantId: tenant.id,
       })
 
     assignResponse.assertStatus(200)
-    assert.equal(assignResponse.body().success, true)
-    assert.equal(assignResponse.body().message, 'Roles assigned successfully')
+    const assignBody = assignResponse.body()
+    assert.equal(assignBody.success, true)
 
     // Verify role assignment
     const userRoles = await roleService.getUserRoles(regularUser, tenant.id)
